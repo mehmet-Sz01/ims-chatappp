@@ -1,22 +1,40 @@
 <template>
     <div class="flex flex-col h-screen">
-        <!-- Mesaj Listeleme Bölümü -->
-        <div class="flex-grow overflow-auto p-4 bg-white">
-            <div v-if="messages.length > 0">
-                <ul>
-                    <li v-for="message in messages" :key="message.id" :class="{'text-right': !message.sender}">
-                        <div :class="{'flex-row-reverse': !message.sender, 'flex-row': message.sender}" class="flex items-start mb-4">
-                            <img :src="message.user.avatar" class="w-8 h-8 rounded-full mr-2" :alt="message.user.name" />
-                            <div :class="{'bg-blue-600 text-white': !message.sender, 'bg-gray-100': message.sender}" class="p-4 rounded-xl max-w-lg">
-                                <p>{{ message.content }}</p>
-                                <UserTime :message="message" />
-                            </div>
-                        </div>
-                    </li>
-                </ul>
+        <!-- Başlık -->
+        <div class="bg-white p-5 text-black font-bold flex justify-between items-center border-b border-gray-300">
+            <!-- Profil Fotoğrafı -->
+            <div class="flex items-center space-x-4">
+                <img v-if="selectedFriend?.profile_picture" :src="`/storage/${selectedFriend.profile_picture}`" alt="Profil Fotoğrafı" class="w-12 h-12 rounded-full object-cover">
+                <span>{{ selectedFriend?.name }} {{ selectedFriend?.surname }}</span>
             </div>
-            <div v-else class="text-center text-gray-500">
-                Bu oldukça boş görünüyor...
+            <!-- Üç Nokta Menüsü -->
+            <div class="relative">
+                <svg @click="toggleMenu" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-500 cursor-pointer">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 0 1 0 1.5.75.75 0 0 1 0-1.5Zm0 4.5a.75.75 0 0 1 0 1.5.75.75 0 0 1 0-1.5Zm0 4.5a.75.75 0 0 1 0 1.5.75.75 0 0 1 0-1.5Z"/>
+                </svg>
+                <div v-if="showMenu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <button @click="deleteMessages" class="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100">Mesajları Sil</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="flex-grow flex overflow-auto p-4 bg-white">
+            <div class="flex-grow">
+                <div v-if="messages && messages.length > 0">
+                    <ul>
+                        <li v-for="message in messages" :key="message.id" class="mb-4">
+                            <div :class="{'flex-row-reverse': message.sender_id === user.id, 'flex-row': message.sender_id !== user.id}" class="flex items-start">
+                                <div :class="{'bg-blue-600 text-white': message.sender_id === user.id, 'bg-gray-100': message.sender_id !== user.id}" class="p-4 rounded-xl max-w-lg">
+                                    <p>{{ message.message }}</p>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div v-else class="text-center text-gray-500">
+                    Bu oldukça boş görünüyor...
+                </div>
             </div>
         </div>
 
@@ -54,19 +72,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import UserTime from "@/components/Chat/Partials/UserTime.vue";
+import { ref, onMounted, watch, defineProps } from 'vue';
 import EmojiPicker from 'emoji-picker';
 import axios from 'axios';
 
-const form = ref({
-    content: ''
+const props = defineProps({
+    selectedFriend: Object
 });
+
+const user = ref(null);
+const form = ref({ content: '' });
 const showEmojis = ref(false);
 const messages = ref([]);
+const showMenu = ref(false);
+
+watch(() => props.selectedFriend, async (newFriend) => {
+    if (newFriend) {
+        await fetchMessages(newFriend.id);
+    }
+}, { immediate: true });
 
 const toggleEmojis = () => {
     showEmojis.value = !showEmojis.value;
+};
+
+const toggleMenu = () => {
+    showMenu.value = !showMenu.value;
 };
 
 const onSelectEmoji = (emoji) => {
@@ -74,26 +105,34 @@ const onSelectEmoji = (emoji) => {
 };
 
 const sendMessage = async () => {
+    if (!props.selectedFriend) {
+        console.error("Mesaj gönderilecek arkadaş seçilmemiş.");
+        return;
+    }
+
+    if (!user.value) {
+        console.error("Kullanıcı bilgileri mevcut değil.");
+        return;
+    }
+
     if (form.value.content.trim()) {
         try {
-            // Mesaj verilerini oluştur
             const response = await axios.post('/api/messages', {
-                sender_id: 1, // Burada uygun bir kullanıcı ID'si ile değiştirin
-                receiver_id: 2, // Burada uygun bir alıcı ID'si ile değiştirin
+                sender_id: user.value.id,
+                receiver_id: props.selectedFriend.id,
                 message: form.value.content,
             });
 
             if (response.data.success) {
-                // Başarılı yanıt alındığında mesajı ekle
                 messages.value.push({
-                    id: response.data.data.id,
-                    content: form.value.content,
-                    user: { avatar: '/path/to/avatar.png', name: 'Kullanıcı' },
-                    sender: true
+                    id: response.data.message.id,
+                    message: form.value.content,
+                    user: {avatar: user.value.avatar, name: user.value.name},
+                    sender_id: user.value.id
                 });
-                form.value.content = ''; // Mesajı gönderdikten sonra alanı temizle
+                form.value.content = '';
             } else {
-                console.error("Mesaj gönderilirken hata oluştu:", response.data.errors);
+                console.error("Mesaj gönderilirken hata oluştu:", response.data.errors || response.data);
             }
         } catch (error) {
             console.error("Mesaj gönderilirken hata oluştu:", error);
@@ -101,9 +140,98 @@ const sendMessage = async () => {
     }
 };
 
-const handleFileUpload = (event) => {
-    const files = event.target.files;
-    console.log("Yüklenen Dosyalar:", files);
+const fetchMessages = async (friendId) => {
+    try {
+        const response = await axios.get(`/api/messages/${friendId}`);
+        if (response.data.success) {
+            messages.value = response.data.data;
+            console.log(messages)
+        } else {
+            console.error('Mesajlar alınırken hata oluştu:', response.data.errors || response.data);
+        }
+    } catch (error) {
+        console.error('Mesajlar alınırken hata oluştu:', error);
+    }
 };
+
+const deleteMessages = async () => {
+    if (!props.selectedFriend) {
+        console.error("Mesajları silmek için bir arkadaş seçilmemiş.");
+        return;
+    }
+
+    try {
+        const response = await axios.delete(`/api/messages/${props.selectedFriend.id}`);
+        if (response.data.success) {
+            messages.value = [];
+        } else {
+            console.error('Mesajlar silinirken hata oluştu:', response.data.errors || response.data);
+        }
+    } catch (error) {
+        console.error('Mesajlar silinirken hata oluştu:', error);
+    }
+};
+
+// İlk yüklemede kullanıcı bilgilerini al
+onMounted(async () => {
+    try {
+        const response = await axios.get('/api/user');
+        user.value = response.data;
+    } catch (error) {
+        console.error("Kullanıcı bilgileri alınırken hata oluştu:", error);
+    }
+});
+
+const handleFileUpload = async (event) => {
+    const files = event.target.files;
+    if (files.length > 0) {
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('attachments[]', files[i]);
+        }
+        try {
+            const response = await axios.post('/api/messages/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data.success) {
+                const attachments = response.data.attachments.map(attachment => ({
+                    id: attachment.id,
+                    url: attachment.url,
+                }));
+
+                const newMessage = {
+                    sender_id: user.value.id,
+                    receiver_id: props.selectedFriend.id,
+                    message: form.value.content,
+                    attachments: attachments,
+                };
+
+                messages.value.push(newMessage);
+                form.value.content = '';
+            } else {
+                console.error('Dosya yüklenirken hata oluştu:', response.data.errors || response.data);
+            }
+        } catch (error) {
+            console.error('Dosya yüklenirken hata oluştu:', error);
+        }
+    }
+};
+
 </script>
 
+<style>
+body {
+    font-family: 'Nunito', sans-serif;
+}
+
+textarea {
+    outline: none;
+}
+
+textarea:focus {
+    outline: none;
+}
+</style>

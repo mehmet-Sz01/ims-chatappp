@@ -4,18 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
     public function getUsers()
     {
-        // Mevcut kullanıcıyı hariç tutarak diğer tüm kullanıcıları al
+        // Arkadaş olmayan kullanıcıları döndür
+        $users = User::whereDoesntHave('friends', function ($query) {
+            $query->where('user_id', Auth::id());
+        })->get();
 
-        $users = User::where('id', '!=', auth()->id())->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $users
-        ]);
+        return response()->json($users);
     }
 }

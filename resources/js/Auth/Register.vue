@@ -12,11 +12,28 @@ const user = ref({
     email: null,
     password: null,
     password_confirmation: null,
+    profile_picture: null, // profil fotoğrafı ekleyin
 });
 
+const handleFileUpload = (event) => {
+    user.value.profile_picture = event.target.files[0];
+};
+
 const register = async () => {
+    const formData = new FormData();
+    formData.append('name', user.value.name);
+    formData.append('surname', user.value.surname);
+    formData.append('email', user.value.email);
+    formData.append('password', user.value.password);
+    formData.append('password_confirmation', user.value.password_confirmation);
+    formData.append('profile_picture', user.value.profile_picture);
+
     try {
-        const response = await axios.post('/api/register', user.value);
+        const response = await axios.post('/api/register', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
         console.log(response.data);
         router.push('/login')
     } catch (error) {
@@ -37,6 +54,10 @@ const register = async () => {
                         </div>
                     </div>
                     <div>
+
+                        <label for="profile_picture" class="block text-gray-900 text-xl font-medium mb-2">Profil Fotoğrafı</label>
+                        <InputText id="profile_picture" type="file" class="w-full md:w-30rem mb-5 p-4 border border-gray-300 rounded-lg" @change="handleFileUpload"/>
+
                         <label for="name" class="block text-gray-900 text-xl font-medium mb-2">İsim</label>
                         <InputText id="name" type="text" placeholder="İsim" class="w-full md:w-30rem mb-5 p-4 border border-gray-300 rounded-lg" v-model="user.name" />
 

@@ -15,7 +15,7 @@
                 <!-- Profil Menü -->
                 <div v-if="showProfileMenu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                     <ul>
-                        <li><a href="#" @click="profile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profil</a></li>
+                        <li><a href="#" @click="goToProfile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profil</a></li>
                         <li><a href="#" @click="logout" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Çıkış Yap</a></li>
                     </ul>
                 </div>
@@ -26,6 +26,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import router from "../../router/router.js";
 
 const showProfileMenu = ref(false);
 
@@ -33,8 +34,9 @@ const toggleProfileMenu = () => {
     showProfileMenu.value = !showProfileMenu.value;
 };
 
-const profile = () => {
+const goToProfile = () => {
     window.location.href = '/profile';
+
 };
 const logout = () => {
     window.location.href = '/login';

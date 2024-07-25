@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -69,4 +70,32 @@ class ProfileController extends Controller
 
         return response()->json(['message' => 'Hesap başarıyla silindi!']);
     }
+
+    public function updateProfilePicture(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        // Eski profil fotoğrafını sil (varsa)
+        if ($user->profile_picture) {
+            Storage::delete('public/profile_pictures/' . $user->profile_picture);
+        }
+
+        // Resmi yükle ve kaydet
+        $file = $request->file('profile_picture');
+        $filename = time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('public/profile_pictures', $filename);
+
+
+        // Kullanıcıyı güncelle
+        $user->profile_picture = $filename;
+        $user->save();
+
+        return response()->json(['success' => true, 'photoUrl' => Storage::url($user->profile_picture)]);
+    }
+
+
 }

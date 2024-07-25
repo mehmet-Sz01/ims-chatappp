@@ -16,6 +16,7 @@ class Chat extends Model
         'receiver_id',
         'message'
     ];
+    protected $table = 'chat_messages'; // Tablo adı burada belirtilmeli
 
     public function sender()
     {

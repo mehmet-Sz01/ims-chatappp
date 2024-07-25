@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Message extends Model
 {
     use HasFactory;
-
+    protected $table = 'chat_messages'; // Tablo adı burada belirtilmeli
     protected $casts = [
         'attachments' => 'array'
     ];

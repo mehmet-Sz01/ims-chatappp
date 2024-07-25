@@ -22,6 +22,7 @@ class User extends Authenticatable
         'surname',
         'email',
         'password',
+        'profile_picture',
     ];
 
     /**
@@ -43,4 +44,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function friends()
+    {
+        return $this->belongsToMany(User::class, 'friends', 'user_id', 'friend_id');
+    }
 }
