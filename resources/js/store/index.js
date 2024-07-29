@@ -4,7 +4,7 @@ import router from "../router/router.js";
 
 const state = {
     user: null,
-    authenticated: null
+    authenticated: false
 };
 
 const getters = {
@@ -13,48 +13,50 @@ const getters = {
 };
 
 const actions = {
-    async authenticate({ commit }) {
+    async authenticate({ commit, state }) {
         if (!state.user) {
-            return axios.get('/api/user').then(res => {
+            try {
+                const res = await axios.get('/api/user');
                 commit('setAuthenticate', true);
                 commit('setUser', res.data);
-            }).catch(err => {
+            } catch (err) {
                 console.error('Authentication error:', err);
-            });
+                commit('setAuthenticate', false);
+                commit('setUser', null);
+            }
         }
     },
-    async login({ commit, state }, authData) {
-        await axios.get('/sanctum/csrf-cookie').then(() => {
-            axios.post('/api/login', { ...authData })
-                .then(async res => {
-                    commit('setAuthenticate', true);
-                    commit('setUser', res.data.data);
-                    await router.push('/chat');
-                }).catch(err => {
-                console.error('Login error:', err);
-            });
-        });
+    async login({ commit }, authData) {
+        try {
+            await axios.get('/sanctum/csrf-cookie');
+            const res = await axios.post('/api/login', { ...authData });
+            commit('setAuthenticate', true);
+            commit('setUser', res.data);
+            await router.push('/chat');
+        } catch (err) {
+            console.error('Login error:', err);
+        }
     },
     async register({ commit }, registerData) {
-        await axios.get('/sanctum/csrf-cookie').then(() => {
-            axios.post('/api/register', { ...registerData })
-                .then(async res => {
-                    commit('setAuthenticate', true);
-                    commit('setUser', res.data.data);
-                    await router.push('/login');
-                }).catch(err => {
-                console.error('Register error:', err);
-            });
-        });
+        try {
+            await axios.get('/sanctum/csrf-cookie');
+            const res = await axios.post('/api/register', { ...registerData });
+            commit('setAuthenticate', true);
+            commit('setUser', res.data);
+            await router.push('/login');
+        } catch (err) {
+            console.error('Register error:', err);
+        }
     },
     async logout({ commit }) {
-        await axios.get('/api/logout').then(async () => {
+        try {
+            await axios.get('/api/logout');
             commit('setUser', null);
             commit('setAuthenticate', false);
-            await router.push('login');
-        }).catch(err => {
+            await router.push('/login');
+        } catch (err) {
             console.error('Logout error:', err);
-        });
+        }
     }
 };
 

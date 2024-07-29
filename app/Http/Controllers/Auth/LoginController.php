@@ -20,8 +20,13 @@ class LoginController extends Controller
         ];
 
         if (Auth::attempt($userControl)) {
-
-            return response()->json(Auth::user(),'200');
+            $user = Auth::user();
+            $token = $user->createToken('authToken')->plainTextToken;
+            return response()->json([
+                'message' => 'Giriş Başarılı',
+                'token' => $token,
+                'user' => $user,
+            ], 200);
         } else {
             return response()->json('Giriş Başarısız', 401);
         }

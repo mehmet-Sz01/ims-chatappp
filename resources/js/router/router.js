@@ -44,7 +44,7 @@ const router = createRouter({
 
  router.beforeEach(async (to, from, next) => {
     try {
-      await store.dispatch('authenticate');
+        await store.dispatch('authenticate');
        if (store.getters.authenticated || to.name === 'login' || to.name === 'register') {
            next();
       } else {

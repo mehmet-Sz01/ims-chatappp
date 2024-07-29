@@ -36,6 +36,7 @@
 <script setup>
 import { ref } from 'vue';
 import router from "../../router/router.js";
+import store from "@/store/index.js";
 
 const showProfileMenu = ref(false);
 
@@ -47,9 +48,9 @@ const goToProfile = () => {
     window.location.href = '/profile';
 };
 
-const logout = () => {
-    window.location.href = '/login';
-};
+    const logout = () => {
+        store.dispatch('logout');
+    };
 
 const goToChat = () => {
     window.location.href = '/chat';

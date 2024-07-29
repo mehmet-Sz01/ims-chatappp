@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
 use App\Models\Chat;
 use App\Models\Message;
 use Illuminate\Http\Request;
@@ -28,12 +29,13 @@ class MessageController extends Controller
         }
 
         // Mesajı oluştur ve veritabanına kaydet
-        $message = Chat::create([
+        $message = Message::create([
             'sender_id' => $request->sender_id,
             'receiver_id' => $request->receiver_id,
             'message' => $request->message,
         ]);
 
+        broadcast(new MessageSent($message))->toOthers();
         // Başarılı yanıt gönder
         return response()->json([
             'success' => true,
@@ -60,17 +62,21 @@ class MessageController extends Controller
         try {
             $userId = Auth::id();
 
-            // İki kullanıcı arasında geçen tüm mesajları sil
-            Message::where(function ($query) use ($userId, $friendId) {
-                $query->where('sender_id', $userId)->where('receiver_id', $friendId);
-            })->orWhere(function ($query) use ($userId, $friendId) {
-                $query->where('sender_id', $friendId)->where('receiver_id', $userId);
-            })->delete();
+            // Kullanıcı tarafından silinen mesajları işaretle
+            Message::where('sender_id', $userId)
+                ->where('receiver_id', $friendId)
+                ->update(['deleted_by_sender' => true]);
+
+            // Alıcı tarafından silinen mesajları işaretle
+            Message::where('sender_id', $friendId)
+                ->where('receiver_id', $userId)
+                ->update(['deleted_by_receiver' => true]);
 
             return response()->json(['success' => true, 'message' => 'Mesajlar başarıyla silindi.']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Mesajlar silinirken hata oluştu.', 'error' => $e->getMessage()], 500);
         }
     }
+
 
 }

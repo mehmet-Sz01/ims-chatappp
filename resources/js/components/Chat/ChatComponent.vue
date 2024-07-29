@@ -75,16 +75,34 @@
 import { ref, onMounted, watch, defineProps } from 'vue';
 import EmojiPicker from 'emoji-picker';
 import axios from 'axios';
+import Echo from 'laravel-echo';
+import {useStore} from "vuex";
+
+import Pusher from 'pusher-js';
+window.Pusher = Pusher;
+
+const echo = new Echo({
+    broadcaster: 'reverb',
+    key: import.meta.env.VITE_REVERB_APP_KEY,
+    wsHost: import.meta.env.VITE_REVERB_HOST,
+    wsPort: import.meta.env.VITE_REVERB_PORT,
+    wssPort: import.meta.env.VITE_REVERB_PORT,
+    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+    enabledTransports: ['ws', 'wss'],
+});
 
 const props = defineProps({
     selectedFriend: Object
 });
-
+const store = useStore();
 const user = ref(null);
+const userId = ref(null);
 const form = ref({ content: '' });
 const showEmojis = ref(false);
 const messages = ref([]);
 const showMenu = ref(false);
+const currentUserId = store.getters.user.id;
+
 
 watch(() => props.selectedFriend, async (newFriend) => {
     if (newFriend) {
@@ -140,17 +158,26 @@ const sendMessage = async () => {
     }
 };
 
-const fetchMessages = async (friendId) => {
+const fetchMessages = async () => {
+    if (!props.selectedFriend) {
+        console.error("Mesajları getirmek için bir arkadaş seçilmemiş.");
+        return;
+    }
+
     try {
-        const response = await axios.get(`/api/messages/${friendId}`);
+        const response = await axios.get(`/api/messages/${props.selectedFriend.id}`);
         if (response.data.success) {
-            messages.value = response.data.data;
-            console.log(messages)
+            messages.value = response.data.data.filter(message => {
+                if (message.sender_id === userId.value && !message.deleted_by_sender) {
+                    return true;
+                }
+                return message.receiver_id === userId.value && !message.deleted_by_receiver;
+            });
         } else {
-            console.error('Mesajlar alınırken hata oluştu:', response.data.errors || response.data);
+            console.error('Mesajlar getirilirken hata oluştu:', response.data.errors || response.data);
         }
     } catch (error) {
-        console.error('Mesajlar alınırken hata oluştu:', error);
+        console.error('Mesajlar getirilirken hata oluştu:', error);
     }
 };
 
@@ -172,14 +199,35 @@ const deleteMessages = async () => {
     }
 };
 
-// İlk yüklemede kullanıcı bilgilerini al
-onMounted(async () => {
+const getUserId = async () => {
+    try {
+        const response = await axios.get('/api/user');
+        userId.value = response.data.id;
+    } catch (error) {
+        console.error('Kullanıcı ID alınırken hata oluştu:', error);
+    }
+};
+
+const getUser = async () => {
     try {
         const response = await axios.get('/api/user');
         user.value = response.data;
     } catch (error) {
         console.error("Kullanıcı bilgileri alınırken hata oluştu:", error);
     }
+}
+
+// İlk yüklemede kullanıcı bilgilerini al
+onMounted(async () => {
+    getUser();
+    getUserId();
+    fetchMessages();
+
+    echo.private(`chat.${currentUserId}`)
+        .listen('MessageSent', (e) => {
+             messages.value.push(e.message);
+        });
+
 });
 
 const handleFileUpload = async (event) => {
