@@ -1,5 +1,5 @@
 <template>
-    <div class=" h-screen w-full max-w-7xl grow lg:flex xl:px-2">
+    <div class="w-full  grow lg:flex xl:px-2">
         <div class="flex">
             <slot name="sidebar"/>
         </div>

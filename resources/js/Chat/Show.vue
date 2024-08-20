@@ -20,7 +20,7 @@ const handleStartChat = (friend) => {
         <Header />
 
         <!-- İçerik kısmı -->
-        <div class="flex flex-grow mt-16">
+        <div class="flex flex-grow mt-16 overflow-hidden">
             <ChatLayout>
                 <template v-slot:sidebar>
                     <Sidebar :chats="chats" @start-chat="handleStartChat"/>

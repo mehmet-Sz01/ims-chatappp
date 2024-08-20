@@ -1,7 +1,7 @@
 <template>
-    <div class="flex flex-col h-screen">
+    <div class="flex flex-col h-screen overflow-hidden">
         <!-- Başlık -->
-        <div class="bg-white p-5 text-black font-bold flex justify-between items-center border-b border-gray-300">
+        <div class="bg-white p-3 text-black font-bold flex justify-between items-center border-b border-gray-300">
             <!-- Profil Fotoğrafı -->
             <div class="flex items-center space-x-4">
                 <img v-if="selectedFriend?.profile_picture" :src="`/storage/${selectedFriend.profile_picture}`" alt="Profil Fotoğrafı" class="w-12 h-12 rounded-full object-cover">
@@ -9,9 +9,7 @@
             </div>
             <!-- Üç Nokta Menüsü -->
             <div class="relative">
-                <svg @click="toggleMenu" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-500 cursor-pointer">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 0 1 0 1.5.75.75 0 0 1 0-1.5Zm0 4.5a.75.75 0 0 1 0 1.5.75.75 0 0 1 0-1.5Zm0 4.5a.75.75 0 0 1 0 1.5.75.75 0 0 1 0-1.5Z"/>
-                </svg>
+                <icon-button :icon="['fas', 'ellipsis-vertical']" @iconClick="toggleMenu" class="bg-white"></icon-button>
                 <div v-if="showMenu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                     <button @click="deleteMessages" class="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100">Mesajları Sil</button>
                 </div>
@@ -19,9 +17,9 @@
         </div>
 
 
-        <div class="flex-grow flex overflow-auto p-4 bg-white">
+        <div class="sidebar flex flex-grow overflow-auto p-4 bg-white">
             <div class="flex-grow">
-                <div v-if="messages && messages.length > 0">
+                <div v-if="selectedFriend">
                     <ul>
                         <li v-for="message in messages" :key="message.id" class="mb-4">
                             <div :class="{'flex-row-reverse': message.sender_id === user.id, 'flex-row': message.sender_id !== user.id}" class="flex items-start">
@@ -32,14 +30,16 @@
                         </li>
                     </ul>
                 </div>
-                <div v-else class="text-center text-gray-500">
-                    Bu oldukça boş görünüyor...
+                <div v-else class="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                    <icon-button :icon="['fas','comments']" size="xl" style="background: none; box-shadow: none; outline: none;"></icon-button>
+                    mesaj seçin veya bir mesajlaşma başlatın
                 </div>
+
             </div>
         </div>
 
         <!-- Mesaj Gönderim Bölümü -->
-        <div class="bg-white p-4 border-t border-gray-300">
+        <div v-if="selectedFriend" class="bg-white p-4 border-t border-gray-300">
             <div class="flex items-center">
                 <!-- Emoji Seçici -->
                 <svg @click="toggleEmojis" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-500 cursor-pointer mr-2">
@@ -61,11 +61,7 @@
 
                 <!-- Mesaj Girişi ve Gönderim Butonu -->
                 <textarea v-model="form.content" placeholder="Bir mesaj yazın" class="flex-grow bg-white text-gray-700 placeholder-gray-500 border-none rounded-full p-2 focus:ring-0 resize-none" rows="1"></textarea>
-                <button @click="sendMessage" class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white ml-2">
-                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-6.504-6.504a1 1 0 0 1 1.414-1.414l6.504 6.504a1 1 0 0 1 0 1.414l-6.504 6.504a1 1 0 1 1-1.414-1.414l6.504-6.504z"/>
-                    </svg>
-                </button>
+                <icon-button :icon="['fas', 'paper-plane']"  @click="sendMessage"></icon-button>
             </div>
         </div>
     </div>
@@ -79,6 +75,7 @@ import Echo from 'laravel-echo';
 import {useStore} from "vuex";
 
 import Pusher from 'pusher-js';
+import IconButton from "../UI/IconButton.vue";
 window.Pusher = Pusher;
 
 const echo = new Echo({
@@ -271,6 +268,31 @@ const handleFileUpload = async (event) => {
 </script>
 
 <style>
+/* WebKit (Chrome, Safari, Edge) */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent; /* Track'in arka planı şeffaf, WhatsApp'taki gibi */
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: #888; /* Kaydırma çubuğu için gri renk */
+    border-radius: 10px; /* Köşeleri yuvarlama */
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Hover durumunda koyu gri renk */
+}
+
+/* Firefox */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #888 transparent; /* Kaydırma çubuğu için gri renk, track için şeffaf */
+}
+
+
 body {
     font-family: 'Nunito', sans-serif;
 }

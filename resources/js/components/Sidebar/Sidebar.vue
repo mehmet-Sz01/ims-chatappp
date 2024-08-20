@@ -3,31 +3,29 @@
     <div class="flex flex-grow w-64 xl:w-80 max-w-xs xl:shrink-0 xl:border-b-0 xl:border-r flex-col border-b border-gray-200">
         <div class="flex p-4 justify-between">
             <h1 class="text-lg font-bold">Sohbetler</h1>
-            <button @click="toggleModal" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                Arkadaş Ekle
-            </button>
+                <icon-button :icon="['fas', 'user-plus']" @iconClick="toggleModal"></icon-button>
         </div>
         <input type="search"
                v-model="searchQuery"
                placeholder="Yeni sohbet.."
                class="border-gray-300 w-full p-1 dark:border-gray-700 dark:text-gray-500 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
 
-        <div v-if="filteredFriends.length">
+        <div  v-if="filteredFriends.length" class="sidebar overflow-y-auto">
             <ul>
-                <li v-for="friend in filteredFriends" :key="friend.id" class="relative p-3 border-b border-gray-200 font-bold cursor-pointer flex items-center justify-between">
+                <li  @click="startChat(friend)" v-for="friend in filteredFriends" :key="friend.id" class="relative p-3 border-b border-gray-200 font-bold cursor-pointer flex items-center justify-between ">
                     <!-- Profil Fotoğrafı -->
-                    <img v-if="friend.profile_picture" :src="`/storage/profile_pictures/${friend.profile_picture}`" alt="Profil Fotoğrafı" class="w-12 h-12 rounded-full object-cover mr-3">
-                    <div @click="startChat(friend)">
+                    <div v-if="friend.profile_picture">
+                        <img v-if="friend.profile_picture" :src="`/storage/profile_pictures/${friend.profile_picture}`" alt="Profil Fotoğrafı" class="w-8 h-8 rounded-full object-cover mr-3">
+                    </div>
+                    <div v-else>
+                        <icon-button :icon="['fas', 'user']"></icon-button>
+                    </div>
+                    <div class="text-gray-700">
                         {{ friend.name }} {{ friend.surname }}
                     </div>
                     <!-- Silme işlemi için üç nokta menüsü -->
                     <div class="relative">
-                        <button @click="toggleMenu(friend)" class="text-gray-500 hover:text-gray-700">
-                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h12m-6 6h6M6 6h12"></path>
-                            </svg>
-                        </button>
-                        <!-- Silme Menüsü -->
+                        <icon-button :icon="['fas', 'ellipsis-vertical']" @iconClick="toggleMenu(friend)" class="bg-white"></icon-button>
                         <div v-if="activeMenu === friend.id" class="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                             <button @click="removeFriend(friend)" class="block px-5 py-2 text-red-600 hover:bg-gray-100 w-full text-left">
                                 Arkadaşı Çıkar
@@ -80,6 +78,7 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import FriendDetailsModal from '../Sidebar/FriendDetailsModal.vue';
+import IconButton from "../UI/IconButton.vue";
 
 const friends = ref([]);
 const users = ref([]);
@@ -91,10 +90,10 @@ const activeMenu = ref(null);
 const emit = defineEmits(['start-chat']);
 
 function toggleModal() {
-    showModal.value = !showModal.value;
-    if (showModal.value) {
-        fetchUsers();
-    }
+   showModal.value = !showModal.value;
+   if (showModal.value) {
+       fetchUsers();
+   }
 }
 
 function toggleFriendDetailsModal() {
@@ -190,3 +189,29 @@ onMounted(async () => {
     fetchUsers();
 });
 </script>
+
+<style>
+/* WebKit (Chrome, Safari, Edge) */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent; /* Track'in arka planı şeffaf, WhatsApp'taki gibi */
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: #888; /* Kaydırma çubuğu için gri renk */
+    border-radius: 10px; /* Köşeleri yuvarlama */
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Hover durumunda koyu gri renk */
+}
+
+/* Firefox */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #888 transparent; /* Kaydırma çubuğu için gri renk, track için şeffaf */
+}
+</style>
